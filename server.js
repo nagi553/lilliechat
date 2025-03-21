@@ -29,7 +29,7 @@ client.on('messageCreate', async message => {
           'Authorization': `Bearer ${process.env.OPENROUTER_API_KEY}`
         },
         body: JSON.stringify({
-          model: 'openrouter/google/gemma-3-27b-it:free', // 正しいモデル名
+          model: 'google/gemma-3-27b-it:free', // 正しいモデル名
           messages: [
             { role: 'system', content: 'あなたはDiscordサーバー内で役立つ情報を提供する親切なAIアシスタントです。簡潔で自然な回答を心がけてください。' },
             { role: 'user', content: userMessage }
