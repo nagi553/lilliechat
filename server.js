@@ -1,6 +1,8 @@
 import { Client, GatewayIntentBits } from 'discord.js';
 import fetch from 'node-fetch';
+import express from 'express'; // Webサーバー用
 
+// Discordクライアント設定
 const client = new Client({
   intents: [
     GatewayIntentBits.Guilds,
@@ -9,13 +11,17 @@ const client = new Client({
   ]
 });
 
-client.on('ready', () => {
+// Discord BOTがログインした際の処理
+client.once('ready', () => {
   console.log(`${client.user.tag} としてログインしました`);
 });
 
+// メッセージ受信時の処理
 client.on('messageCreate', async message => {
+  // 自分自身や他のBOTには反応しない
   if (message.author.bot) return;
 
+  // BOTへのメンションの場合のみ反応
   if (message.mentions.has(client.user)) {
     const userMessage = message.content.replace(/<@!?\d+>/g, '').trim();
 
@@ -30,7 +36,7 @@ client.on('messageCreate', async message => {
           'Authorization': `Bearer ${process.env.OPENROUTER_API_KEY}`
         },
         body: JSON.stringify({
-          model: 'google/gemma-3-27b-it:free', // 無料のGemma 3モデル
+          model: 'google/gemma-3-27b-it:free', // 使用するモデル
           messages: [
             { role: 'system', content: 'あなたはDiscordサーバー内で役立つ情報を提供する親切なAIアシスタントです。簡潔で自然な回答を心がけてください。' },
             { role: 'user', content: userMessage }
@@ -51,4 +57,17 @@ client.on('messageCreate', async message => {
   }
 });
 
+// Discord BOTにログイン
 client.login(process.env.DISCORD_BOT_TOKEN);
+
+// 簡易Webサーバー設定（Render用）
+const app = express();
+const port = process.env.PORT || 3000;
+
+app.get('/', (req, res) => {
+  res.send('BOT is running!');
+});
+
+app.listen(port, () => {
+  console.log(`Web server is running on port ${port}`);
+});
