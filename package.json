@@ -1,8 +1,9 @@
 {
-  "name": "discord-bot",
+  "name": "lilliechat",
   "version": "1.0.0",
   "description": "Discord bot with OpenRouter integration",
   "main": "server.js",
+  "type": "module",
   "scripts": {
     "start": "node server.js"
   },

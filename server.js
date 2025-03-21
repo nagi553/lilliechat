@@ -1,7 +1,6 @@
-const { Client, GatewayIntentBits } = require('discord.js');
-const fetch = require('node-fetch');
+import { Client, GatewayIntentBits } from 'discord.js';
+import fetch from 'node-fetch';
 
-// Discordクライアント設定
 const client = new Client({
   intents: [
     GatewayIntentBits.Guilds,
@@ -10,24 +9,19 @@ const client = new Client({
   ]
 });
 
-// ボットがログインした際の処理
 client.on('ready', () => {
   console.log(`${client.user.tag} としてログインしました`);
 });
 
-// メッセージ受信時の処理
 client.on('messageCreate', async message => {
-  // 自分自身やBOTからのメッセージには反応しない
   if (message.author.bot) return;
 
-  // BOTへのメンションの場合のみ反応
   if (message.mentions.has(client.user)) {
-    const userMessage = message.content.replace(/<@!?\d+>/g, '').trim(); // メンション部分を除去
+    const userMessage = message.content.replace(/<@!?\d+>/g, '').trim();
 
     try {
       const reply = await message.channel.send('考え中...');
 
-      // OpenRouter APIへのリクエスト
       const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
         method: 'POST',
         headers: {
@@ -35,7 +29,7 @@ client.on('messageCreate', async message => {
           'Authorization': `Bearer ${process.env.OPENROUTER_API_KEY}`
         },
         body: JSON.stringify({
-          model: 'openai/gpt-3.5-turbo', // 使用するモデル名
+          model: 'openai/gpt-3.5-turbo',
           messages: [
             { role: 'system', content: 'あなたは親切なAIアシスタントです。' },
             { role: 'user', content: userMessage }
@@ -46,7 +40,6 @@ client.on('messageCreate', async message => {
       const data = await response.json();
       const aiResponse = data.choices[0].message.content;
 
-      // AIからの応答を送信
       await reply.edit(aiResponse);
     } catch (error) {
       console.error('エラー:', error);
@@ -55,5 +48,4 @@ client.on('messageCreate', async message => {
   }
 });
 
-// Discord BOTにログイン
 client.login(process.env.DISCORD_BOT_TOKEN);
