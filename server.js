@@ -29,7 +29,7 @@ client.on('messageCreate', async message => {
           'Authorization': `Bearer ${process.env.OPENROUTER_API_KEY}`
         },
         body: JSON.stringify({
-          model: 'google/gemma-3-27b:free', // 正しい無料モデル名に変更
+          model: 'openrouter/google/gemma-3-27b-it:free', // 正しい無料モデル名
           messages: [
             { role: 'system', content: 'あなたはDiscordサーバー内で役立つ情報を提供する親切なAIアシスタントです。簡潔で自然な回答を心がけてください。' },
             { role: 'user', content: userMessage }
@@ -40,9 +40,14 @@ client.on('messageCreate', async message => {
       });
 
       const data = await response.json();
-      const aiResponse = data.choices[0].message.content;
 
-      await reply.edit(aiResponse);
+      // エラーチェックと安全なレスポンス処理
+      if (data && data.choices && data.choices.length > 0) {
+        const aiResponse = data.choices[0].message.content;
+        await reply.edit(aiResponse);
+      } else {
+        await reply.edit('AIから適切な応答を得られませんでした。もう一度試してください。');
+      }
     } catch (error) {
       console.error('エラー:', error);
       message.channel.send('エラーが発生しました。もう一度試してください。');
