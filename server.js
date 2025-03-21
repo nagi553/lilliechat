@@ -1,6 +1,7 @@
 import { Client, GatewayIntentBits } from 'discord.js';
 import fetch from 'node-fetch';
-import express from 'express'; // Webサーバー用
+import express from 'express';
+import { readFile } from 'fs/promises';
 
 // Discordクライアント設定
 const client = new Client({
@@ -10,6 +11,20 @@ const client = new Client({
     GatewayIntentBits.MessageContent
   ]
 });
+
+// キャラクター設定を読み込む関数
+async function loadCharacterSettings() {
+  try {
+    const data = await readFile('./character.json', 'utf8');
+    return JSON.parse(data);
+  } catch (error) {
+    console.error('キャラクター設定の読み込みに失敗しました:', error);
+    // デフォルト設定を返す
+    return {
+      system_prompt: "あなたは親切なAIアシスタントです。"
+    };
+  }
+}
 
 // Discord BOTがログインした際の処理
 client.once('ready', () => {
@@ -27,6 +42,9 @@ client.on('messageCreate', async message => {
 
     try {
       const reply = await message.channel.send('考え中...');
+      
+      // キャラクター設定を読み込む
+      const character = await loadCharacterSettings();
 
       // OpenRouter APIへのリクエスト
       const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
@@ -36,13 +54,13 @@ client.on('messageCreate', async message => {
           'Authorization': `Bearer ${process.env.OPENROUTER_API_KEY}`
         },
         body: JSON.stringify({
-          model: 'google/gemma-3-27b-it:free', // 使用するモデル
+          model: 'google/gemma-3-27b-it:free',
           messages: [
-            { role: 'system', content: 'あなたはDiscordサーバー内で役立つ情報を提供する親切なAIアシスタントです。簡潔で自然な回答を心がけてください。' },
+            { role: 'system', content: character.system_prompt },
             { role: 'user', content: userMessage }
           ],
-          temperature: 0.7, // 応答のランダム性を調整
-          max_tokens: 200 // 応答文字数制限
+          temperature: 0.7,
+          max_tokens: 200
         })
       });
 
