@@ -22,6 +22,7 @@ client.on('messageCreate', async message => {
     try {
       const reply = await message.channel.send('考え中...');
 
+      // OpenRouter APIへのリクエスト
       const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
         method: 'POST',
         headers: {
@@ -29,7 +30,7 @@ client.on('messageCreate', async message => {
           'Authorization': `Bearer ${process.env.OPENROUTER_API_KEY}`
         },
         body: JSON.stringify({
-          model: 'google/gemma-3-27b-it:free', // 正しいモデル名
+          model: 'google/gemma-3-27b-it:free', // 無料のGemma 3モデル
           messages: [
             { role: 'system', content: 'あなたはDiscordサーバー内で役立つ情報を提供する親切なAIアシスタントです。簡潔で自然な回答を心がけてください。' },
             { role: 'user', content: userMessage }
@@ -40,14 +41,9 @@ client.on('messageCreate', async message => {
       });
 
       const data = await response.json();
+      const aiResponse = data.choices[0].message.content;
 
-      // エラーチェックと安全なレスポンス処理
-      if (data && data.choices && data.choices.length > 0) {
-        const aiResponse = data.choices[0].message.content;
-        await reply.edit(aiResponse);
-      } else {
-        await reply.edit('AIから適切な応答を得られませんでした。もう一度試してください。');
-      }
+      await reply.edit(aiResponse);
     } catch (error) {
       console.error('エラー:', error);
       message.channel.send('エラーが発生しました。もう一度試してください。');
