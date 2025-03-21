@@ -29,11 +29,13 @@ client.on('messageCreate', async message => {
           'Authorization': `Bearer ${process.env.OPENROUTER_API_KEY}`
         },
         body: JSON.stringify({
-          model: 'openai/gpt-3.5-turbo',
+          model: 'google/gemma-3-27b:free', // 正しい無料モデル名に変更
           messages: [
-            { role: 'system', content: 'あなたは親切なAIアシスタントです。' },
+            { role: 'system', content: 'あなたはDiscordサーバー内で役立つ情報を提供する親切なAIアシスタントです。簡潔で自然な回答を心がけてください。' },
             { role: 'user', content: userMessage }
-          ]
+          ],
+          temperature: 0.7, // 応答のランダム性を調整
+          max_tokens: 200 // 応答文字数制限
         })
       });
 
