@@ -39,7 +39,7 @@ client.on('messageCreate', async message => {
   // BOTへのメンションの場合のみ反応
   if (message.mentions.has(client.user)) {
     try {
-      const reply = await message.channel.send('考え中...');
+      const reply = await message.channel.send('リーリエが入力中...');
       
       // 直近のメッセージを50件取得
       const messages = await message.channel.messages.fetch({ limit: 50 });
@@ -53,16 +53,20 @@ client.on('messageCreate', async message => {
       for (const msg of recentMessages) {
         // 自分のメッセージは「assistant」として、それ以外は「user」として扱う
         if (msg.author.id === client.user.id) {
-          // BOTの返信から「考え中...」は除外
-          if (msg.content !== '考え中...') {
+          // BOTの返信から「リーリエが入力中...」は除外
+          if (msg.content !== 'リーリエが入力中...') {
             conversationHistory.push({ role: 'assistant', content: msg.content });
           }
         } else {
           // メンションを除去
           let content = msg.content.replace(/<@!?\d+>/g, '').trim();
           
-          // ユーザー名を含める形でメッセージを構築
-          let userMessage = `${msg.author.username}: ${content}`;
+          // サーバー内での表示名を取得（ニックネームまたはユーザー名）
+          // msg.memberがnullの場合（DMなど）はusernameにフォールバック
+          let displayName = msg.member?.displayName || msg.author.username;
+          
+          // ユーザー表示名を含める形でメッセージを構築
+          let userMessage = `${displayName}: ${content}`;
           conversationHistory.push({ role: 'user', content: userMessage });
         }
       }
