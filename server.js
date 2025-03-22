@@ -8,8 +8,7 @@ const client = new Client({
   intents: [
     GatewayIntentBits.Guilds,
     GatewayIntentBits.GuildMessages,
-    GatewayIntentBits.MessageContent,
-    GatewayIntentBits.MessageHistory // メッセージ履歴取得に必要
+    GatewayIntentBits.MessageContent
   ]
 });
 
@@ -20,6 +19,7 @@ async function loadCharacterSettings() {
     return JSON.parse(data);
   } catch (error) {
     console.error('キャラクター設定の読み込みに失敗しました:', error);
+    // デフォルト設定を返す
     return {
       system_prompt: "あなたは親切なAIアシスタントです。"
     };
@@ -41,7 +41,7 @@ client.on('messageCreate', async message => {
     try {
       const reply = await message.channel.send('考え中...');
       
-      // 過去50件のメッセージを取得
+      // 直近のメッセージを50件取得
       const messages = await message.channel.messages.fetch({ limit: 50 });
       
       // 古い順に並べ替え（新しいものが先に来るので逆順にする）
@@ -51,23 +51,19 @@ client.on('messageCreate', async message => {
       const conversationHistory = [];
       
       for (const msg of recentMessages) {
-        // 自分のメッセージは「assistant」として扱う
+        // 自分のメッセージは「assistant」として、それ以外は「user」として扱う
         if (msg.author.id === client.user.id) {
-          // 「考え中...」は除外
+          // BOTの返信から「考え中...」は除外
           if (msg.content !== '考え中...') {
-            conversationHistory.push({
-              role: 'assistant',
-              content: msg.content
-            });
+            conversationHistory.push({ role: 'assistant', content: msg.content });
           }
         } else {
-          // ユーザーのメッセージ（メンションを除去）
+          // メンションを除去
           let content = msg.content.replace(/<@!?\d+>/g, '').trim();
-          conversationHistory.push({
-            role: 'user',
-            content: content,
-            name: msg.author.username // ユーザー名を追加
-          });
+          
+          // ユーザー名を含める形でメッセージを構築
+          let userMessage = `${msg.author.username}: ${content}`;
+          conversationHistory.push({ role: 'user', content: userMessage });
         }
       }
       
@@ -76,7 +72,7 @@ client.on('messageCreate', async message => {
       
       // システムプロンプトを先頭に追加
       const messages_for_ai = [
-        { role: 'system', content: character.system_prompt },
+        { role: 'system', content: character.system_prompt + "\n\n複数のユーザーと会話する場合は、各メッセージの冒頭にあるユーザー名を確認し、誰が話しているか区別してください。" },
         ...conversationHistory
       ];
 
@@ -91,7 +87,7 @@ client.on('messageCreate', async message => {
           model: 'google/gemma-3-27b-it:free',
           messages: messages_for_ai,
           temperature: 0.7,
-          max_tokens: 200
+          max_tokens: 300
         })
       });
 
