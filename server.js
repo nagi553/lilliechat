@@ -8,7 +8,8 @@ const client = new Client({
   intents: [
     GatewayIntentBits.Guilds,
     GatewayIntentBits.GuildMessages,
-    GatewayIntentBits.MessageContent
+    GatewayIntentBits.MessageContent,
+    GatewayIntentBits.MessageHistory // メッセージ履歴取得に必要
   ]
 });
 
@@ -19,7 +20,6 @@ async function loadCharacterSettings() {
     return JSON.parse(data);
   } catch (error) {
     console.error('キャラクター設定の読み込みに失敗しました:', error);
-    // デフォルト設定を返す
     return {
       system_prompt: "あなたは親切なAIアシスタントです。"
     };
@@ -38,13 +38,47 @@ client.on('messageCreate', async message => {
 
   // BOTへのメンションの場合のみ反応
   if (message.mentions.has(client.user)) {
-    const userMessage = message.content.replace(/<@!?\d+>/g, '').trim();
-
     try {
       const reply = await message.channel.send('考え中...');
       
+      // 過去50件のメッセージを取得
+      const messages = await message.channel.messages.fetch({ limit: 50 });
+      
+      // 古い順に並べ替え（新しいものが先に来るので逆順にする）
+      const recentMessages = Array.from(messages.values()).reverse();
+      
+      // 会話履歴を構築
+      const conversationHistory = [];
+      
+      for (const msg of recentMessages) {
+        // 自分のメッセージは「assistant」として扱う
+        if (msg.author.id === client.user.id) {
+          // 「考え中...」は除外
+          if (msg.content !== '考え中...') {
+            conversationHistory.push({
+              role: 'assistant',
+              content: msg.content
+            });
+          }
+        } else {
+          // ユーザーのメッセージ（メンションを除去）
+          let content = msg.content.replace(/<@!?\d+>/g, '').trim();
+          conversationHistory.push({
+            role: 'user',
+            content: content,
+            name: msg.author.username // ユーザー名を追加
+          });
+        }
+      }
+      
       // キャラクター設定を読み込む
       const character = await loadCharacterSettings();
+      
+      // システムプロンプトを先頭に追加
+      const messages_for_ai = [
+        { role: 'system', content: character.system_prompt },
+        ...conversationHistory
+      ];
 
       // OpenRouter APIへのリクエスト
       const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
@@ -55,10 +89,7 @@ client.on('messageCreate', async message => {
         },
         body: JSON.stringify({
           model: 'google/gemma-3-27b-it:free',
-          messages: [
-            { role: 'system', content: character.system_prompt },
-            { role: 'user', content: userMessage }
-          ],
+          messages: messages_for_ai,
           temperature: 0.7,
           max_tokens: 200
         })
